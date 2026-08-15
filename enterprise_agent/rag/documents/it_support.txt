@@ -1,0 +1,47 @@
+ENTERPRISE IT SUPPORT KNOWLEDGE BASE
+
+VPN TROUBLESHOOTING
+
+If an employee is unable to connect to the corporate VPN, follow these steps:
+
+1. Verify that the device has a working internet connection.
+2. Restart the VPN client.
+3. Reconnect to the corporate VPN.
+4. Verify that the correct VPN server is configured.
+5. Restart the computer if the issue continues.
+6. If the VPN still does not work after troubleshooting, contact IT support and create a support ticket.
+
+
+PASSWORD RESET
+
+If an employee forgets their corporate password:
+
+1. Open the corporate password reset portal.
+2. Enter the employee username.
+3. Complete identity verification.
+4. Create a new password.
+5. Sign in again using the new password.
+
+Never share corporate passwords with other users.
+
+
+LAPTOP TROUBLESHOOTING
+
+If a company laptop is experiencing problems:
+
+1. Restart the laptop.
+2. Check network connectivity.
+3. Check whether the issue affects other applications.
+4. Install pending operating system updates.
+5. If the issue continues, contact IT support.
+
+
+EMAIL CONFIGURATION
+
+For corporate email problems:
+
+1. Verify network connectivity.
+2. Confirm the corporate email address.
+3. Restart the email application.
+4. Check account configuration.
+5. If the problem continues, contact IT support.
