@@ -1,5 +1,7 @@
 import logging
 
+import json
+
 from enterprise_agent.rag.retriever import create_retriever
 
 logger = logging.getLogger("enterprise_agent.tools")
@@ -8,36 +10,73 @@ logger = logging.getLogger("enterprise_agent.tools")
 from langchain_core.tools import tool
 
 
+
+# ==========================================
+# Ticket Store
+# ==========================================
+
+tickets = {
+    "INC001": {
+        "ticket_id": "INC001",
+        "description": "VPN issue",
+        "status": "In Progress",
+        "priority": "Medium"
+    },
+
+    "INC002": {
+        "ticket_id": "INC002",
+        "description": "Password reset",
+        "status": "Resolved",
+        "priority": "Low"
+    },
+
+    "INC003": {
+        "ticket_id": "INC003",
+        "description": "Laptop issue",
+        "status": "Assigned",
+        "priority": "Medium"
+    }
+}
+
+
+ticket_counter = 4
+
+
 # ==========================================
 # Ticket Lookup
 # ==========================================
 
 @tool
 def lookup_ticket(ticket_id: str) -> str:
-    """Look up the status of an IT support ticket."""
+    """Look up the details of an IT support ticket."""
 
     logger.info(
         "Looking up ticket: %s",
         ticket_id
     )
 
-    tickets = {
-        "INC001": "VPN issue - In Progress",
-        "INC002": "Password reset - Resolved",
-        "INC003": "Laptop issue - Assigned"
-    }
+    ticket = tickets.get(ticket_id)
 
-    result = tickets.get(
-        ticket_id,
-        f"Ticket {ticket_id} was not found."
-    )
+    if not ticket:
+
+        result = {
+            "error": f"Ticket {ticket_id} was not found."
+        }
+
+        logger.warning(
+            "Ticket %s was not found.",
+            ticket_id
+        )
+
+        return json.dumps(result)
+
 
     logger.info(
         "Ticket lookup completed: %s",
-        result
+        ticket
     )
 
-    return result
+    return json.dumps(ticket)
 
 
 # ==========================================
@@ -48,20 +87,32 @@ def lookup_ticket(ticket_id: str) -> str:
 def create_ticket(description: str) -> str:
     """Create a new IT support ticket."""
 
+    global ticket_counter
+
     logger.info(
         "Creating ticket for issue: %s",
         description
     )
 
-    result = (
-        f"Ticket created successfully for issue: "
-        f"{description}"
+    ticket_id = f"INC{ticket_counter:03d}"
+
+    ticket = {
+        "ticket_id": ticket_id,
+        "description": description,
+        "status": "Open",
+        "priority": "Medium"
+    }
+
+    tickets[ticket_id] = ticket
+
+    ticket_counter += 1
+
+    logger.info(
+        "Ticket %s created successfully.",
+        ticket_id
     )
 
-    logger.info("Ticket creation completed.")
-
-    return result
-
+    return json.dumps(ticket)
 
 # ==========================================
 # Knowledge Base Search
