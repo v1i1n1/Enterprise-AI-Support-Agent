@@ -40,10 +40,10 @@ class AgentMetrics:
 
         if self.total_requests == 0:
 
-            return {
+            {
                 "total_requests": 0,
                 "successful_requests": 0,
-                "failed_requests": 0,
+                "failed_return requests": 0,
                 "average_response_time": 0
             }
 

@@ -22,7 +22,7 @@ retriever = create_retriever()
 
 llm = ChatOpenAI(
     model="gpt-4o-mini",
-    temperature=0
+    temperature=0.3
 )
 
 

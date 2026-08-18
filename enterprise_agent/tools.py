@@ -4,6 +4,8 @@ import json
 
 from enterprise_agent.rag.retriever import create_retriever
 
+from enterprise_agent.rag.vectorstore import create_vector_store
+
 logger = logging.getLogger("enterprise_agent.tools")
 
 
@@ -41,6 +43,18 @@ tickets = {
 
 ticket_counter = 4
 
+# ==========================================
+# Ticket Statistics
+# ==========================================
+
+def get_open_ticket_count():
+    """Return the number of currently open tickets."""
+
+    return sum(
+        1
+        for ticket in tickets.values()
+        if ticket["status"] not in ["Closed", "Resolved"]
+    )
 
 # ==========================================
 # Ticket Lookup
@@ -78,6 +92,33 @@ def lookup_ticket(ticket_id: str) -> str:
 
     return json.dumps(ticket)
 
+# ==========================================
+# List Tickets
+# ==========================================
+
+@tool
+def list_tickets() -> str:
+    """Return all support tickets raised in the current session."""
+
+    logger.info(
+        "Fetching all support tickets."
+    )
+
+    if not tickets:
+
+        return json.dumps({
+            "message": "No support tickets have been created."
+        })
+
+    ticket_list = list(tickets.values())
+
+    logger.info(
+        "Returning %s support tickets.",
+        len(ticket_list)
+    )
+
+    return json.dumps(ticket_list)
+
 
 # ==========================================
 # Create Ticket
@@ -109,6 +150,50 @@ def create_ticket(description: str) -> str:
 
     logger.info(
         "Ticket %s created successfully.",
+        ticket_id
+    )
+
+    return json.dumps(ticket)
+
+# ==========================================
+# Close Ticket
+# ==========================================
+
+@tool
+def close_ticket(ticket_id: str) -> str:
+    """Close an existing IT support ticket."""
+
+    logger.info(
+        "Closing ticket: %s",
+        ticket_id
+    )
+
+    ticket = tickets.get(ticket_id)
+
+    if not ticket:
+
+        result = {
+            "error": f"Ticket {ticket_id} was not found."
+        }
+
+        logger.warning(
+            "Cannot close ticket %s because it was not found.",
+            ticket_id
+        )
+
+        return json.dumps(result)
+
+    if ticket["status"] in ["Closed", "Resolved"]:
+
+        return json.dumps({
+            "message": f"Ticket {ticket_id} is already closed.",
+            "ticket": ticket
+        })
+
+    ticket["status"] = "Closed"
+
+    logger.info(
+        "Ticket %s closed successfully.",
         ticket_id
     )
 
@@ -186,43 +271,182 @@ def search_knowledge_base(query: str) -> str:
 
 @tool
 def search_rag_knowledge_base(query: str) -> str:
-    """Search the enterprise RAG knowledge base for detailed IT procedures, troubleshooting, and policies."""
+    """
+    Search the enterprise RAG knowledge base.
+
+    The tool only answers questions belonging to topics
+    explicitly covered by the enterprise knowledge base.
+    """
 
     try:
 
         if not query or not query.strip():
-            return "Error: RAG query cannot be empty."
 
-        retriever = create_retriever()
-
-        documents = retriever.invoke(query)
-
-        if not documents:
             return (
-                "No relevant information was found "
+                "OUT_OF_SCOPE: Empty knowledge-base query."
+            )
+
+        query_lower = query.lower()
+
+        # --------------------------------------------------
+        # Supported Enterprise Knowledge Topics
+        # --------------------------------------------------
+
+        supported_topics = {
+            "vpn": [
+                "vpn",
+                "virtual private network"
+            ],
+
+            "password": [
+                "password",
+                "password reset",
+                "forgot password",
+                "reset password"
+            ],
+
+            "laptop": [
+                "laptop",
+                "company laptop",
+                "corporate laptop"
+            ],
+
+            "email": [
+                "email",
+                "corporate email",
+                "company email"
+            ]
+        }
+
+        matched_topic = None
+
+        for topic, keywords in supported_topics.items():
+
+            for keyword in keywords:
+
+                if keyword in query_lower:
+
+                    matched_topic = topic
+                    break
+
+            if matched_topic:
+                break
+
+
+        # --------------------------------------------------
+        # Reject Questions Outside Document Topics
+        # --------------------------------------------------
+
+        if not matched_topic:
+
+            logger.info(
+                "Query rejected: unsupported enterprise topic: %s",
+                query
+            )
+
+            return (
+                "OUT_OF_SCOPE: The user's question is not "
+                "covered by the Enterprise IT Support knowledge base. "
+                "Do not answer using general knowledge. "
+                "Tell the user that you can only assist with topics "
+                "covered by the Enterprise IT Support knowledge base."
+            )
+
+
+        # --------------------------------------------------
+        # Create Vector Store
+        # --------------------------------------------------
+
+        vector_store = create_vector_store()
+
+
+        # --------------------------------------------------
+        # Retrieve Relevant Documents
+        # --------------------------------------------------
+
+        results = vector_store.similarity_search_with_score(
+            query,
+            k=2
+        )
+
+        if not results:
+
+            return (
+                "OUT_OF_SCOPE: No relevant information was found "
                 "in the enterprise knowledge base."
             )
 
+
+        # --------------------------------------------------
+        # Validate Retrieved Content
+        # --------------------------------------------------
+
+        relevant_results = []
+
+        for document, distance in results:
+
+            content_lower = document.page_content.lower()
+
+            if matched_topic in content_lower:
+
+                relevant_results.append(
+                    (document, distance)
+                )
+
+
+        if not relevant_results:
+
+            return (
+                "OUT_OF_SCOPE: The retrieved enterprise "
+                "documentation does not directly address "
+                "the user's question."
+            )
+
+
+        # --------------------------------------------------
+        # Build Enterprise Context
+        # --------------------------------------------------
+
         context_parts = []
 
-        for index, document in enumerate(documents):
+        for index, (document, distance) in enumerate(
+            relevant_results
+        ):
 
             context_parts.append(
                 f"Knowledge Base Result {index + 1}:\n"
                 f"{document.page_content}"
             )
 
+
         context = "\n\n".join(context_parts)
 
+
+        # --------------------------------------------------
+        # Return ONLY Enterprise Knowledge
+        # --------------------------------------------------
+
         return (
-            "The following information was retrieved "
-            "from the enterprise knowledge base. "
-            "Use this information to answer the user's "
-            "question accurately and completely. "
-            "Do not omit relevant troubleshooting steps.\n\n"
+            "The following information was retrieved directly "
+            "from the Enterprise IT Support knowledge base.\n\n"
+
+            "IMPORTANT:\n"
+            "Use ONLY the information below to answer the user.\n"
+            "Do NOT use general knowledge.\n"
+            "Do NOT infer additional troubleshooting steps.\n"
+            "Do NOT adapt procedures from another topic.\n"
+            "Do NOT invent information.\n\n"
+
             f"{context}"
         )
 
+
     except Exception as e:
 
-        return f"RAG knowledge-base error: {e}"
+        logger.exception(
+            "RAG knowledge-base search failed."
+        )
+
+        return (
+            f"RAG knowledge-base error: {e}"
+        )

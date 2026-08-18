@@ -24,6 +24,11 @@ The application provides an AI-powered IT support experience that can troublesho
 - 📈 Monitoring and logging
 - 🧪 Unit and integration testing
 - 🔐 Environment-variable-based API configuration
+- 🔒 Enterprise knowledge-base scope enforcement
+- 🚫 Out-of-scope question protection
+- 🎫 Ticket lifecycle management
+- 📋 List and retrieve support tickets
+- 🔄 Open ticket count tracking
 
 ---
 
@@ -101,47 +106,70 @@ The current enterprise knowledge base contains information for:
 
 ## 🎫 Ticket Management
 
-The AI Agent supports both ticket lookup and ticket creation.
+The AI Agent supports a complete support-ticket lifecycle.
 
-### Existing Ticket Lookup
+### Ticket Operations
 
-Example:
+- Create a new support ticket
+- Automatically generate ticket IDs
+- Look up a specific ticket
+- List all raised tickets
+- Close an existing ticket
+- Track the number of currently open tickets
 
-```text
-User:
-What is the status of INC001?
+### Ticket Lifecycle
 
-Agent:
-Ticket INC001 is currently In Progress.
-```
-
-### Ticket Creation
-
-When a ticket is created, the system generates structured ticket information:
-
-```text
-Ticket ID: INC004
-Description: VPN is not connecting
+User requests ticket
+        ↓
+create_ticket()
+        ↓
+INC004
+        ↓
 Status: Open
-Priority: Medium
-```
+        ↓
+close_ticket()
+        ↓
+Status: Closed
 
-The ticket information can then be retrieved using the generated ticket ID during the active application session.
+The ticket ID counter continuously increases:
+
+INC004 → INC005 → INC006 → INC007
+
+The open-ticket count behaves independently:
+
+2 → Create → 3 → Close → 2
+
+### Ticket Retrieval
+
+If the user provides a specific ticket ID:
+
+    "What is the status of INC004?"
+
+The Agent uses:
+
+    lookup_ticket()
+
+If the user asks for all tickets:
+
+    "Show my tickets"
+
+The Agent uses:
+
+    list_tickets()
 
 ### Current Implementation
 
-The current ticket store uses an **in-memory Python dictionary** for demonstration and learning purposes.
+Tickets are currently stored in an in-memory Python dictionary for demonstration and learning purposes.
 
-```text
-create_ticket()
-      ↓
-Ticket ID generated
-      ↓
-Ticket stored in memory
-      ↓
-lookup_ticket()
-      ↓
-Ticket details returned
+Therefore, ticket information and the ticket counter reset when the application restarts.
+
+A production implementation can replace the in-memory store with:
+
+- PostgreSQL
+- Amazon RDS
+- DynamoDB
+- ServiceNow
+- Enterprise ITSM platform
 ```
 
 Because the current implementation is in-memory, newly created tickets are not persistent across application restarts.

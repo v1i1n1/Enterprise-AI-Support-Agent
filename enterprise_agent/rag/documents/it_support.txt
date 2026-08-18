@@ -45,3 +45,14 @@ For corporate email problems:
 3. Restart the email application.
 4. Check account configuration.
 5. If the problem continues, contact IT support.
+
+PRINTER TROUBLESHOOTING
+
+If an employee is unable to print:
+
+1. Verify that the printer is powered on.
+2. Verify that the printer is connected to the corporate network.
+3. Check whether the correct printer is selected.
+4. Check for any printer error messages.
+5. Restart the printer if the issue continues.
+6. If the printer still does not work, contact IT support and create a support ticket.
